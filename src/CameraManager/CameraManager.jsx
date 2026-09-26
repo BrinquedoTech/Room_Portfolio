@@ -68,6 +68,18 @@ export const CameraManager = () => {
             cameraControle.current.setLookAt(2.5, -0.1, 1, 2.5, -0.1, -5, true);
         }
 
+        if (cameraState === 'desk') {
+            useCameraStore.setState({ truckSpeed: 0 });
+            useCameraStore.setState({ dollyToCursor: false });
+            useCameraStore.setState({ minDistance: 4.5 });
+            useCameraStore.setState({ maxDistancce: 6.5 });
+            useCameraStore.setState({ minPolarAngle: Math.PI * 0.38 });
+            useCameraStore.setState({ maxPolarAngle: Math.PI * 0.42 });
+            useCameraStore.setState({ minAzimuthAngle: Math.PI * 0.58 });
+            useCameraStore.setState({ maxAzimuthAngle: Math.PI * 0.58 });
+            cameraControle.current.setLookAt(2.5, 1.2, 7, 2.5, 1.2, 2.7, true);
+        }
+
         if (cameraState === 'smartphone') {
             useCameraStore.setState({ truckSpeed: 0 });
             useCameraStore.setState({ dollyToCursor: false });

@@ -3,7 +3,6 @@ import { useSpring } from '@react-spring/core';
 import { Center, useGLTF, useTexture } from '@react-three/drei';
 import { extend, useFrame } from '@react-three/fiber';
 import { gsap } from 'gsap';
-import { useControls } from 'leva';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -18,7 +17,7 @@ import Windows from './Windows';
 
 extend({ TextureMaterial });
 
-const RoomModel = React.memo(() => {
+const RoomModel = React.memo(({ onStationSelect }) => {
     const chairTop = useRef();
     const textureMatFur = useRef();
     const textureMatDes = useRef();
@@ -58,15 +57,6 @@ const RoomModel = React.memo(() => {
         }
     });
 
-    const controls = useControls({
-        boardColor: { value: '#ff2d88', label: 'Board Color' },
-        boardStrength: { value: 1.35, min: 0, max: 3, step: 0.01 },
-        pcColor: { value: '#4b7eff', label: 'PC-Color' },
-        pcColorStrength: { value: 1.2, min: 0, max: 3, step: 0.01 },
-        deskColors: { value: '#ff7236', label: 'Desk Color' },
-        deskColorStrngth: { value: 1.55, min: 0, max: 3, step: 0.01 }
-    });
-
     const roomModel = useGLTF('./assets/RoomModel.glb');
     const chair = useGLTF('./assets/chairtopDraco.glb');
 
@@ -94,14 +84,14 @@ const RoomModel = React.memo(() => {
             nbakedm: nBaked,
             lightMapm: lightMap,
             NightMix: 0,
-            lightBoardColor: controls.boardColor,
-            lightBoardStrength: controls.boardStrength,
-            lightPcColor: controls.pcColor,
-            lightPcStrength: controls.pcColorStrength,
-            lightDeskColor: controls.deskColors,
-            lightDeskStrength: controls.deskColorStrngth
+            lightBoardColor: '#4f46e5',
+            lightBoardStrength: 1.1,
+            lightPcColor: '#2563eb',
+            lightPcStrength: 1.1,
+            lightDeskColor: '#ea580c',
+            lightDeskStrength: 1.2
         }),
-        [dBaked, nBaked, lightMap, controls]
+        [dBaked, nBaked, lightMap]
     );
 
     const cameraState = useCameraStore((state) => state.cameraState);
@@ -159,7 +149,7 @@ const RoomModel = React.memo(() => {
                     />
                 </mesh>
                 <PhotoFrame toggle={toggle} nodes={roomModel.nodes} />
-                <DispFrame nodes={roomModel.nodes} />
+                <DispFrame nodes={roomModel.nodes} onStationSelect={onStationSelect} />
                 <DispItem toggle={toggle} nodes={roomModel.nodes} />
                 <Clock />
                 <Windows toggle={toggle} nodes={roomModel.nodes} />

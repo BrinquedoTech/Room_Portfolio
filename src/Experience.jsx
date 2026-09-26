@@ -7,15 +7,30 @@ import {
     Outline,
     Selection
 } from '@react-three/postprocessing';
-// import { Perf } from 'r3f-perf';
-import React, { Suspense } from 'react';
+import React, { Component, Suspense } from 'react';
 
 import { CameraManager } from './CameraManager/CameraManager';
 import RoomModel from './RoomModel/roomModel';
 
-const Experience = React.memo(() => {
+class SceneErrorBoundary extends Component {
+    state = { hasError: false };
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch() {
+        this.props.onError?.();
+    }
+
+    render() {
+        return this.state.hasError ? null : this.props.children;
+    }
+}
+
+const Experience = React.memo(({ onError, onStationSelect }) => {
     return (
-        <>
+        <SceneErrorBoundary onError={onError}>
             <Canvas
                 camera={{
                     fov: 35,
@@ -42,12 +57,12 @@ const Experience = React.memo(() => {
                         </EffectComposer>
                         {/* <Perf position={'top-left'} /> */}
                         <CameraManager />
-                        <RoomModel />
+                        <RoomModel onStationSelect={onStationSelect} />
                     </Selection>
                 </Suspense>
             </Canvas>
             <Loader />
-        </>
+        </SceneErrorBoundary>
     );
 });
 

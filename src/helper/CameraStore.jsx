@@ -25,6 +25,11 @@ export const useCameraStore = create((set) => ({
             cameraState: (state.cameraState = 'tv')
         }));
     },
+    desk: () => {
+        set((state) => ({
+            cameraState: (state.cameraState = 'desk')
+        }));
+    },
     smartphone: () => {
         set((state) => ({
             cameraState: (state.cameraState = 'smartphone')

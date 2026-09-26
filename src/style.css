@@ -1,11 +1,11 @@
 html,
 body,
 #root {
-    position: fixed;
-    top: 0;
-    left: 0;
+    margin: 0;
     width: 100%;
     height: 100%;
+    min-height: 100%;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
     background-color: #1f1635;
     background-image: linear-gradient(
         177deg,
@@ -14,3 +14,33 @@ body,
         #100a1d 100%
     );
 }
+
+* { box-sizing: border-box; }
+button { font: inherit; }
+.room-shell { position: relative; min-height: 100%; height: 100%; overflow: hidden; color: #f8fafc; background: #100a1d; }
+.room-scene { position: absolute; inset: 0; }
+.room-scene canvas { display: block; }
+.room-navigation { position: absolute; left: 1rem; bottom: 1rem; z-index: 5; width: min(24rem, calc(100% - 2rem)); max-height: calc(100% - 2rem); overflow: auto; padding: 1rem; border: 1px solid rgb(148 163 184 / 30%); border-radius: 1rem; background: rgb(15 23 42 / 88%); backdrop-filter: blur(14px); box-shadow: 0 1rem 3rem rgb(0 0 0 / 25%); }
+.room-navigation-heading h1 { margin: .1rem 0 .3rem; font-size: 1.2rem; }
+.eyebrow { margin: 0; color: #a5b4fc; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
+.room-status { margin: 0 0 .8rem; color: #cbd5e1; font-size: .82rem; }
+.station { border-top: 1px solid rgb(148 163 184 / 20%); }
+.station-button { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: .15rem; padding: .7rem .2rem; border: 0; color: #f8fafc; background: transparent; cursor: pointer; text-align: left; }
+.station-button:hover, .station.selected .station-button { color: #c4b5fd; }
+.station-button small { color: #94a3b8; }
+.destination-list { display: grid; gap: .4rem; padding: 0 0 .75rem .4rem; }
+.destination-button { display: flex; align-items: center; justify-content: space-between; padding: .6rem .7rem; border: 1px solid rgb(129 140 248 / 40%); border-radius: .55rem; color: #f8fafc; background: rgb(79 70 229 / 24%); cursor: pointer; text-align: left; }
+.destination-button:hover, .destination-button:focus-visible { background: rgb(99 102 241 / 45%); outline: 2px solid #c4b5fd; outline-offset: 2px; }
+.destination-button:disabled { cursor: wait; opacity: .6; }
+.empty-station { margin: 0 0 .8rem; color: #94a3b8; font-size: .8rem; }
+.scene-error { position: absolute; top: 1rem; right: 1rem; z-index: 3; display: grid; gap: .45rem; max-width: min(24rem, calc(100% - 2rem)); padding: .7rem .8rem; border-radius: .5rem; color: #fecaca; background: rgb(127 29 29 / 90%); }
+.scene-error button, .activity-error button { width: fit-content; padding: .45rem .7rem; border: 1px solid rgb(254 202 202 / 55%); border-radius: .45rem; color: white; background: rgb(127 29 29 / 70%); cursor: pointer; }
+.activity-overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: clamp(.5rem, 3vw, 2rem); background: rgb(2 6 23 / 72%); }
+.activity-window { display: flex; width: min(96rem, 100%); height: min(94vh, 100%); flex-direction: column; overflow: hidden; border: 1px solid rgb(165 180 252 / 45%); border-radius: .9rem; background: #0f172a; box-shadow: 0 2rem 5rem rgb(0 0 0 / 40%); }
+.activity-header { display: flex; min-height: 3.3rem; align-items: center; justify-content: space-between; gap: .8rem; padding: .65rem 1rem; border-bottom: 1px solid rgb(148 163 184 / 25%); }
+.activity-header h2 { margin: 0; font-size: 1rem; }
+.activity-header p { margin: .2rem 0 0; color: #cbd5e1; font-size: .78rem; }
+.activity-header button { padding: .5rem .75rem; border: 1px solid rgb(165 180 252 / 50%); border-radius: .45rem; color: white; background: rgb(79 70 229 / 40%); cursor: pointer; }
+.activity-frame { width: 100%; flex: 1; border: 0; background: white; }
+.activity-error { display: grid; place-items: center; gap: .6rem; flex: 1; padding: 2rem; color: #fecaca; text-align: center; }
+@media (max-width: 640px) { .room-navigation { right: 1rem; width: auto; max-height: 44%; } .activity-window { height: 100%; border-radius: .5rem; } .activity-header { align-items: flex-start; flex-direction: column; } .activity-header button { width: 100%; } }
