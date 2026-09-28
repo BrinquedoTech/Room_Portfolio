@@ -21,6 +21,13 @@ const sameDestinations = (left, right) => left.length === right.length
             && destination.station === other.station;
     });
 
+const destinationKeysForStation = (destinations, station) => destinations
+    .filter((destination) => destination.station === station)
+    .map((destination) => destination.itemKey)
+    .sort();
+
+const hasDestinationKeyIntersection = (left, right) => left.some((itemKey) => right.includes(itemKey));
+
 export default function RoomShell() {
     const parentOrigin = useMemo(getParentOrigin, []);
     const pendingRequest = useRef(null);
@@ -63,11 +70,23 @@ export default function RoomShell() {
             if (event.data.type === 'ROOM_CONTEXT') {
                 const nextDestinations = Array.isArray(event.data.destinations) ? event.data.destinations : [];
                 if (nextDestinations.length > 0 && sameDestinations(destinationsRef.current, nextDestinations)) return;
+                const nextActiveStationItemKeys = activeDestination?.station
+                    ? destinationKeysForStation(nextDestinations, activeDestination.station)
+                    : [];
+                const nextPendingStationItemKeys = pendingRequest.current?.station
+                    ? destinationKeysForStation(nextDestinations, pendingRequest.current.station)
+                    : [];
                 const activeStillAllowed = activeDestination && (activeDestination.station
-                    ? nextDestinations.some((destination) => destination.station === activeDestination.station)
+                    ? hasDestinationKeyIntersection(
+                        activeDestination.stationItemKeys,
+                        nextActiveStationItemKeys,
+                    )
                     : nextDestinations.some((destination) => destination.itemKey === activeDestination.itemKey));
                 const pendingStillAllowed = pendingRequest.current && (pendingRequest.current.station
-                    ? nextDestinations.some((destination) => destination.station === pendingRequest.current.station)
+                    ? hasDestinationKeyIntersection(
+                        pendingRequest.current.stationItemKeys,
+                        nextPendingStationItemKeys,
+                    )
                     : nextDestinations.some((destination) => destination.itemKey === pendingRequest.current.itemKey));
                 let accessWasRevoked = false;
                 if (activeDestination && !activeStillAllowed) {
@@ -78,10 +97,16 @@ export default function RoomShell() {
                     lastFocus.current?.focus?.();
                     lastFocus.current = null;
                     setStatus('denied');
+                } else if (activeDestination?.station && activeStillAllowed) {
+                    setActiveDestination((current) => current
+                        ? { ...current, stationItemKeys: nextActiveStationItemKeys }
+                        : current);
                 }
                 if (pendingRequest.current && !pendingStillAllowed) {
                     pendingRequest.current = null;
                     accessWasRevoked = true;
+                } else if (pendingRequest.current?.station && pendingStillAllowed) {
+                    pendingRequest.current.stationItemKeys = nextPendingStationItemKeys;
                 }
                 destinationsRef.current = nextDestinations;
                 setDestinations(nextDestinations);
@@ -100,11 +125,20 @@ export default function RoomShell() {
                     ? pendingRequest.current.itemKey === event.data.itemKey
                     : pendingRequest.current.station === event.data.station);
             if (!matchesPending) return;
+            const request = pendingRequest.current;
             pendingRequest.current = null;
             if (event.data.status === 'allowed' && typeof event.data.url === 'string') {
+                const stationItemKeys = event.data.type === 'ROOM_OPEN_STATION_RESULT'
+                    ? request.stationItemKeys
+                    : undefined;
                 setActivityError(false);
                 setActivityReady(false);
-                setActiveDestination({ ...event.data, itemKey: event.data.itemKey || `station:${event.data.station}`, focus: lastFocus.current });
+                setActiveDestination({
+                    ...event.data,
+                    itemKey: event.data.itemKey || `station:${event.data.station}`,
+                    ...(stationItemKeys ? { stationItemKeys } : {}),
+                    focus: lastFocus.current,
+                });
                 setStatus('ready');
             } else {
                 setStatus(event.data.status === 'denied' ? 'denied' : 'unavailable');
@@ -163,6 +197,7 @@ export default function RoomShell() {
     };
 
     const openStation = (station, button) => {
+        if (pendingRequest.current || activeDestination) return;
         setSelectedStation(station);
         const items = destinationsByStation(station);
         if (!items.length) {
@@ -175,7 +210,11 @@ export default function RoomShell() {
         }
         lastFocus.current = button;
         const requestId = `room-open-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        pendingRequest.current = { requestId, station };
+        pendingRequest.current = {
+            requestId,
+            station,
+            stationItemKeys: destinationKeysForStation(destinations, station),
+        };
         setStatus('opening');
         window.parent.postMessage({ protocol: ROOM_PROTOCOL, type: 'ROOM_OPEN_STATION_REQUEST', requestId, station }, parentOrigin);
     };

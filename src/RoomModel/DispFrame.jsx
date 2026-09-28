@@ -32,15 +32,11 @@ const STATION_TARGETS = [
 const SCREEN_COLOR = '#526dff';
 
 const DESK_COLLIDER = {
-    position: [2.5, 1.35, 2.7],
-    rotation: [0, 0.243, 0],
+    // The desk is part of the same modeled assembly as the monitor. Keep the
+    // interaction target in that node's local frame so model transforms cannot
+    // make the hit area drift into the chair or floor.
+    offset: [1.0431332588, -0.7377959723, -0.0166295052],
     scale: [2.5, 0.12, 1.2]
-};
-
-const BOARD_COLLIDER = {
-    position: [-5.2, 2.95, -1.95],
-    rotation: [0, Math.PI / 2, 0],
-    scale: [2.8, 1.6, 1]
 };
 
 const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => {
@@ -64,6 +60,11 @@ const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => 
     };
     const targetLabel = (station) => actionFor(station).hoverLabel;
     const targetColor = (station) => STATION_TARGETS.find((target) => target.id === station)?.color || 'white';
+    const deskPosition = [
+        nodes.monitor.position.x + DESK_COLLIDER.offset[0],
+        nodes.monitor.position.y + DESK_COLLIDER.offset[1],
+        nodes.monitor.position.z + DESK_COLLIDER.offset[2]
+    ];
 
     const stationLabel = (station) => (
         <Html
@@ -110,15 +111,14 @@ const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => 
             <meshBasicMaterial color={SCREEN_COLOR} toneMapped={false} />
         </mesh>)}
         {selectTarget('board', <mesh
-            position={BOARD_COLLIDER.position}
-            rotation={BOARD_COLLIDER.rotation}
-            scale={BOARD_COLLIDER.scale}
+            geometry={nodes.dispItem.geometry}
+            position={nodes.dispItem.position}
+            rotation={nodes.dispItem.rotation}
             onClick={openStation('board')}
             onPointerDown={setStationHover('board')}
             onPointerOver={setStationHover('board')}
             onPointerOut={clearStationHover}
         >
-            <planeGeometry />
             <meshBasicMaterial transparent opacity={0.03} color="#fbbf24" depthWrite={false} />
         </mesh>)}
         {selectTarget('tv', <mesh
@@ -133,8 +133,8 @@ const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => 
             <meshBasicMaterial transparent opacity={0.03} color="#a855f7" depthWrite={false} />
         </mesh>)}
         {selectTarget('desk', <mesh
-            position={DESK_COLLIDER.position}
-            rotation={DESK_COLLIDER.rotation}
+            position={deskPosition}
+            rotation={nodes.monitor.rotation}
             scale={DESK_COLLIDER.scale}
             onClick={openStation('desk')}
             onPointerDown={setStationHover('desk')}
