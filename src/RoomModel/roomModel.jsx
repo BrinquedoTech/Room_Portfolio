@@ -13,11 +13,12 @@ import DispFrame from './DispFrame';
 import DispItem from './dispItem';
 import PhotoFrame from './photoFrame';
 import TextureMaterial from './textures/TextureMaterial';
+import TeddyBear from './TeddyBear';
 import Windows from './Windows';
 
 extend({ TextureMaterial });
 
-const RoomModel = React.memo(({ onStationSelect }) => {
+const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
     const chairTop = useRef();
     const textureMatFur = useRef();
     const textureMatDes = useRef();
@@ -148,9 +149,10 @@ const RoomModel = React.memo(({ onStationSelect }) => {
                         ref={textureMatChaorTop}
                     />
                 </mesh>
-                <PhotoFrame toggle={toggle} nodes={roomModel.nodes} />
-                <DispFrame nodes={roomModel.nodes} onStationSelect={onStationSelect} />
+                <PhotoFrame nodes={roomModel.nodes} />
+                <DispFrame nodes={roomModel.nodes} onStationOpen={onStationOpen} stationActions={stationActions} />
                 <DispItem toggle={toggle} nodes={roomModel.nodes} />
+                <TeddyBear />
                 <Clock />
                 <Windows toggle={toggle} nodes={roomModel.nodes} />
                 <TheamSwitch x={x} set={setToggle} nodes={roomModel.nodes} />

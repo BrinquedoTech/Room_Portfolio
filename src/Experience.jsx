@@ -28,7 +28,7 @@ class SceneErrorBoundary extends Component {
     }
 }
 
-const Experience = React.memo(({ onError, onStationSelect }) => {
+const Experience = React.memo(({ onError, onStationOpen, stationActions }) => {
     return (
         <SceneErrorBoundary onError={onError}>
             <Canvas
@@ -57,7 +57,7 @@ const Experience = React.memo(({ onError, onStationSelect }) => {
                         </EffectComposer>
                         {/* <Perf position={'top-left'} /> */}
                         <CameraManager />
-                        <RoomModel onStationSelect={onStationSelect} />
+                        <RoomModel onStationOpen={onStationOpen} stationActions={stationActions} />
                     </Selection>
                 </Suspense>
             </Canvas>

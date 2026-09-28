@@ -1,15 +1,49 @@
-/* Educational station surfaces. Destinations are presented by RoomShell's accessible list. */
+/* Educational objects open the corresponding activity directly. */
+import { Html } from '@react-three/drei';
 import { Select } from '@react-three/postprocessing';
 import React, { useEffect, useState } from 'react';
 
-import { useCameraStore } from '../helper/CameraStore';
+const STATION_TARGETS = [
+    {
+        id: 'computer',
+        color: '#526dff',
+        node: 'monitor',
+        labelPosition: [1.46, 3.05, 2.72]
+    },
+    {
+        id: 'board',
+        color: '#fbbf24',
+        node: 'dispItem',
+        labelPosition: [-5.25, 3.35, -0.56]
+    },
+    {
+        id: 'tv',
+        color: '#a855f7',
+        node: 'tvdisplay',
+        labelPosition: [2.4, 2.35, 1.55]
+    },
+    {
+        id: 'desk',
+        color: '#f97316',
+        labelPosition: [2.5, 2.55, 2.7]
+    }
+];
 
-const DispFrame = React.memo(({ nodes, onStationSelect }) => {
-    const cameraState = useCameraStore((state) => state.cameraState);
-    const desktopState = useCameraStore((state) => state.desktop);
-    const displayBoardState = useCameraStore((state) => state.displayBoard);
-    const tvState = useCameraStore((state) => state.tv);
-    const deskState = useCameraStore((state) => state.desk);
+const SCREEN_COLOR = '#526dff';
+
+const DESK_COLLIDER = {
+    position: [2.5, 1.35, 2.7],
+    rotation: [0, 0.243, 0],
+    scale: [2.5, 0.12, 1.2]
+};
+
+const BOARD_COLLIDER = {
+    position: [-5.2, 2.95, -1.95],
+    rotation: [0, Math.PI / 2, 0],
+    scale: [2.8, 1.6, 1]
+};
+
+const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => {
     const [hovered, setHovered] = useState(null);
 
     useEffect(() => {
@@ -17,44 +51,99 @@ const DispFrame = React.memo(({ nodes, onStationSelect }) => {
         return () => { document.body.style.cursor = 'auto'; };
     }, [hovered]);
 
-    const selectStation = (station, moveCamera) => () => {
-        if (cameraState !== 'default') return;
-        onStationSelect?.(station);
-        moveCamera();
+    const openStation = (station) => (event) => {
+        event.stopPropagation();
+        onStationOpen?.(station, event.currentTarget);
     };
 
+    const setStationHover = (station) => () => setHovered(station);
+    const clearStationHover = () => setHovered(null);
+    const actionFor = (station) => stationActions[station] || {
+        available: false,
+        hoverLabel: 'Nenhuma atividade liberada'
+    };
+    const targetLabel = (station) => actionFor(station).hoverLabel;
+    const targetColor = (station) => STATION_TARGETS.find((target) => target.id === station)?.color || 'white';
+
+    const stationLabel = (station) => (
+        <Html
+            center
+            distanceFactor={7}
+            position={STATION_TARGETS.find((target) => target.id === station)?.labelPosition}
+            style={{ pointerEvents: 'none' }}
+            zIndexRange={[1, 2]}
+        >
+            <div
+                aria-hidden="true"
+                className={`station-label ${actionFor(station).available ? '' : 'station-label-empty'}`}
+                style={{ '--station-color': targetColor(station) }}
+            >
+                {targetLabel(station)}
+            </div>
+        </Html>
+    );
+
+    const selectTarget = (station, children) => (
+        <Select enabled={hovered === station} key={station}>
+            {children}
+            {(hovered === station) && stationLabel(station)}
+        </Select>
+    );
+
     return <>
-        <Select enabled={hovered === 'monitor'}>
-            <mesh geometry={nodes.monitor.geometry} position={nodes.monitor.position} rotation={nodes.monitor.rotation}
-                onClick={selectStation('computer', desktopState)}
-                onPointerOver={() => setHovered('monitor')} onPointerOut={() => setHovered(null)}>
-                <meshBasicMaterial color="#526dff" toneMapped={false} />
-            </mesh>
-        </Select>
-        <Select enabled={hovered === 'board'}>
-            <mesh position={[-5.2, 2.95, -1.95]} rotation={[0, Math.PI / 2, 0]} scale={[2.8, 1.6, 1]}
-                onClick={selectStation('board', displayBoardState)}
-                onPointerOver={() => setHovered('board')} onPointerOut={() => setHovered(null)}>
-                <meshBasicMaterial transparent opacity={0.18} color="#fbbf24" />
-                <planeGeometry />
-            </mesh>
-        </Select>
-        <Select enabled={hovered === 'tv'}>
-            <mesh position={[2.5, 1.45, -5.3]} scale={[2.6, 1.45, 1]}
-                onClick={selectStation('tv', tvState)}
-                onPointerOver={() => setHovered('tv')} onPointerOut={() => setHovered(null)}>
-                <meshBasicMaterial transparent opacity={0.18} color="#a855f7" />
-                <planeGeometry />
-            </mesh>
-        </Select>
-        <Select enabled={hovered === 'desk'}>
-            <mesh position={[2.5, 1.35, 2.7]} scale={[2.5, 1.2, 1]}
-                onClick={selectStation('desk', deskState)}
-                onPointerOver={() => setHovered('desk')} onPointerOut={() => setHovered(null)}>
-                <meshBasicMaterial transparent opacity={0.18} color="#f97316" />
-                <planeGeometry />
-            </mesh>
-        </Select>
+        <mesh
+            geometry={nodes.laptop.geometry}
+            position={nodes.laptop.position}
+            rotation={nodes.laptop.rotation}
+        >
+            <meshBasicMaterial color={SCREEN_COLOR} toneMapped={false} />
+        </mesh>
+        {selectTarget('computer', <mesh
+            geometry={nodes.monitor.geometry}
+            position={nodes.monitor.position}
+            rotation={nodes.monitor.rotation}
+            onClick={openStation('computer')}
+            onPointerDown={setStationHover('computer')}
+            onPointerOver={setStationHover('computer')}
+            onPointerOut={clearStationHover}
+        >
+            <meshBasicMaterial color={SCREEN_COLOR} toneMapped={false} />
+        </mesh>)}
+        {selectTarget('board', <mesh
+            position={BOARD_COLLIDER.position}
+            rotation={BOARD_COLLIDER.rotation}
+            scale={BOARD_COLLIDER.scale}
+            onClick={openStation('board')}
+            onPointerDown={setStationHover('board')}
+            onPointerOver={setStationHover('board')}
+            onPointerOut={clearStationHover}
+        >
+            <planeGeometry />
+            <meshBasicMaterial transparent opacity={0.03} color="#fbbf24" depthWrite={false} />
+        </mesh>)}
+        {selectTarget('tv', <mesh
+            geometry={nodes.tvdisplay.geometry}
+            position={nodes.tvdisplay.position}
+            rotation={nodes.tvdisplay.rotation}
+            onClick={openStation('tv')}
+            onPointerDown={setStationHover('tv')}
+            onPointerOver={setStationHover('tv')}
+            onPointerOut={clearStationHover}
+        >
+            <meshBasicMaterial transparent opacity={0.03} color="#a855f7" depthWrite={false} />
+        </mesh>)}
+        {selectTarget('desk', <mesh
+            position={DESK_COLLIDER.position}
+            rotation={DESK_COLLIDER.rotation}
+            scale={DESK_COLLIDER.scale}
+            onClick={openStation('desk')}
+            onPointerDown={setStationHover('desk')}
+            onPointerOver={setStationHover('desk')}
+            onPointerOut={clearStationHover}
+        >
+            <boxGeometry args={[1, 1, 1]} />
+            <meshBasicMaterial transparent opacity={0.03} color="#f97316" depthWrite={false} />
+        </mesh>)}
     </>;
 });
 
