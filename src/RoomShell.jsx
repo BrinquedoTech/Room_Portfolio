@@ -6,8 +6,8 @@ import { getParentOrigin, isRoomMessage, ROOM_PROTOCOL } from './roomProtocol';
 const STATIONS = [
     { id: 'computer', label: 'Computador: Ferramentas', areaLabel: 'Ferramentas educativas', description: 'Pratique, explore e crie.' },
     { id: 'board', label: 'Quadro: Trilhas de aprendizagem', areaLabel: 'Trilhas de aprendizagem', description: 'Continue suas atividades.' },
-    { id: 'tv', label: 'TV: Jogos educativos', areaLabel: 'Jogos educativos', description: 'Aprenda brincando.' },
-    { id: 'desk', label: 'Mesa: Coleções e pet', areaLabel: 'Coleções e pet', description: 'Veja suas coleções.' }
+    { id: 'tv', label: 'Xadrez: Jogos educativos', areaLabel: 'Jogos educativos', description: 'Aprenda brincando.' },
+    { id: 'desk', label: 'Livros: Álbuns', areaLabel: 'Álbuns', description: 'Veja seus álbuns.' }
 ];
 
 const ACTIVITY_READY_TIMEOUT_MS = 5000;
@@ -33,6 +33,8 @@ export default function RoomShell() {
     const pendingRequest = useRef(null);
     const lastFocus = useRef(null);
     const activityFrame = useRef(null);
+    const activityWindow = useRef(null);
+    const activityFullscreenButton = useRef(null);
     const destinationsRef = useRef([]);
     const [destinations, setDestinations] = useState([]);
     const [selectedStation, setSelectedStation] = useState('computer');
@@ -43,8 +45,23 @@ export default function RoomShell() {
     const [sceneRetryKey, setSceneRetryKey] = useState(0);
     const [activityError, setActivityError] = useState(false);
     const [activityReady, setActivityReady] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [fullscreenError, setFullscreenError] = useState(false);
     const activityCloseButton = useRef(null);
     destinationsRef.current = destinations;
+    const activityOpen = Boolean(activeDestination);
+
+    useEffect(() => {
+        if (window.parent !== window) {
+            window.parent.postMessage({ protocol: ROOM_PROTOCOL, type: 'ROOM_ACTIVITY_VISIBILITY', open: activityOpen }, parentOrigin);
+        }
+    }, [activityOpen, parentOrigin]);
+
+    useEffect(() => {
+        const onFullscreenChange = () => setIsFullscreen(document.fullscreenElement === activityWindow.current);
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    }, []);
 
     const sendReady = useCallback(() => {
         if (window.parent !== window) {
@@ -168,13 +185,19 @@ export default function RoomShell() {
         const focusTimer = window.setTimeout(() => activityCloseButton.current?.focus(), 0);
         const onKeyDown = (event) => {
             if (event.key === 'Escape') {
+                if (document.fullscreenElement === activityWindow.current) return;
                 event.preventDefault();
                 closeDestination();
                 return;
             }
-            if (event.key !== 'Tab' || !activityCloseButton.current) return;
-            event.preventDefault();
-            activityCloseButton.current.focus();
+            if (event.key !== 'Tab') return;
+            if (event.target === activityCloseButton.current && !event.shiftKey) {
+                event.preventDefault();
+                activityFullscreenButton.current?.focus();
+            } else if (event.target === activityFullscreenButton.current && event.shiftKey) {
+                event.preventDefault();
+                activityCloseButton.current?.focus();
+            }
         };
         window.addEventListener('keydown', onKeyDown);
         return () => {
@@ -220,12 +243,26 @@ export default function RoomShell() {
     };
 
     const closeDestination = () => {
+        if (document.fullscreenElement === activityWindow.current) void document.exitFullscreen().catch(() => undefined);
         setActiveDestination(null);
         setActivityError(false);
         setActivityReady(false);
         setStatus('ready');
         lastFocus.current?.focus?.();
         lastFocus.current = null;
+    };
+
+    const toggleFullscreen = async () => {
+        try {
+            if (document.fullscreenElement === activityWindow.current) {
+                await document.exitFullscreen();
+            } else {
+                await activityWindow.current?.requestFullscreen();
+            }
+            setFullscreenError(false);
+        } catch {
+            setFullscreenError(true);
+        }
     };
 
     const retryScene = () => {
@@ -252,7 +289,7 @@ export default function RoomShell() {
 
             <aside className={`room-navigation ${showActivityList ? 'expanded' : ''}`} aria-label="Atividades da sala">
                 <div className="room-navigation-heading">
-                    <div><p className="eyebrow">Sala individual</p><h1>Explore a sala</h1><p className="room-hint">Clique no computador, quadro, TV ou mesa para abrir uma atividade.</p></div>
+                    <div><p className="eyebrow">Sala individual</p><h1>Explore a sala</h1><p className="room-hint">Clique no computador, quadro, xadrez ou livros para abrir uma atividade.</p></div>
                     <p className="room-status" role="status">{status === 'loading' ? 'Carregando atividades…' : status === 'standalone' ? 'Entre pelo painel para acessar as atividades.' : status === 'denied' ? 'Esta atividade não está disponível para sua turma.' : status === 'unavailable' ? 'Não foi possível carregar a sala. Tente novamente.' : status === 'empty' ? 'Nenhuma atividade está liberada neste local.' : 'As atividades aparecem ao clicar nos objetos.'}</p>
                 </div>
                 <button className="activity-list-toggle" type="button" aria-expanded={showActivityList} onClick={() => setShowActivityList((value) => !value)}>{showActivityList ? 'Ocultar atividades' : 'Ver lista de atividades'}</button>
@@ -270,9 +307,10 @@ export default function RoomShell() {
             </aside>
 
             {activeDestination && <div className="activity-overlay" role="dialog" aria-modal="true" aria-labelledby="activity-title" aria-describedby="activity-description">
-                <div className="activity-window">
-                    <header className="activity-header"><div><h2 id="activity-title">{activeDestination.label}</h2><p id="activity-description">Atividade aberta dentro da sala.</p></div><button ref={activityCloseButton} type="button" onClick={closeDestination}>Fechar e voltar ao mapa</button></header>
-                    {activityError ? <div className="activity-error" role="alert"><p>Não foi possível carregar esta atividade.</p><button type="button" onClick={closeDestination}>Fechar e voltar ao mapa</button></div> : <iframe ref={activityFrame} title={activeDestination.label} src={activeDestination.url} className="activity-frame" onError={() => { console.error('[room] activity iframe failed', { itemKey: activeDestination.itemKey }); setActivityError(true); }} />}
+                <div className="activity-window" ref={activityWindow}>
+                    <header className="activity-header"><div><h2 id="activity-title">{activeDestination.label}</h2><p id="activity-description">Atividade aberta dentro da sala.</p></div><div className="activity-controls"><button ref={activityFullscreenButton} type="button" onClick={toggleFullscreen}>{isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}</button><button ref={activityCloseButton} type="button" onClick={closeDestination}>Fechar e voltar ao mapa</button></div></header>
+                    {fullscreenError && <p className="activity-fullscreen-error" role="alert">Não foi possível ativar a tela cheia neste navegador.</p>}
+                    {activityError ? <div className="activity-error" role="alert"><p>Não foi possível carregar esta atividade.</p><button type="button" onClick={closeDestination}>Fechar e voltar ao mapa</button></div> : <iframe ref={activityFrame} title={activeDestination.label} src={activeDestination.url} className="activity-frame" allow="fullscreen" allowFullScreen onError={() => { console.error('[room] activity iframe failed', { itemKey: activeDestination.itemKey }); setActivityError(true); }} />}
                 </div>
             </div>}
         </div>

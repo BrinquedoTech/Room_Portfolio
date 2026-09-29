@@ -1,6 +1,6 @@
 /* eslint-disable react/display-name */
 import { useSpring } from '@react-spring/core';
-import { Center, useGLTF, useTexture } from '@react-three/drei';
+import { Center, meshBounds, useGLTF, useTexture } from '@react-three/drei';
 import { extend, useFrame } from '@react-three/fiber';
 import { gsap } from 'gsap';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -8,10 +8,11 @@ import * as THREE from 'three';
 
 import { useCameraStore } from '../helper/CameraStore';
 import TheamSwitch from '../Switch/TheamSwitch';
+import ChildFriendlyProps from './ChildFriendlyProps';
 import Clock from './clock';
 import DispFrame from './DispFrame';
-import DispItem from './dispItem';
 import PhotoFrame from './photoFrame';
+import '../setupAssetLoaders';
 import TextureMaterial from './textures/TextureMaterial';
 import TeddyBear from './TeddyBear';
 import Windows from './Windows';
@@ -28,18 +29,15 @@ const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
 
     useEffect(() => {
         const nightMix = toggle ? 1 : 0;
-        gsap.to(textureMatFur.current.uniforms.NightMix, {
+        const targets = [textureMatFur, textureMatDes, textureMatChaorTop]
+            .map((materialRef) => materialRef.current?.uniforms?.NightMix)
+            .filter(Boolean);
+        const tweens = targets.map((target) => gsap.to(target, {
             value: nightMix,
             duration: 1
-        });
-        gsap.to(textureMatDes.current.uniforms.NightMix, {
-            value: nightMix,
-            duration: 1
-        });
-        gsap.to(textureMatChaorTop.current.uniforms.NightMix, {
-            value: nightMix,
-            duration: 1
-        });
+        }));
+
+        return () => tweens.forEach((tween) => tween.kill());
     }, [toggle]);
 
     const [{ x }] = useSpring(
@@ -66,18 +64,21 @@ const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
     dBaked.magFilter = THREE.LinearFilter;
     dBaked.minFilter = THREE.NearestFilter;
     dBaked.generateMipmaps = false;
+    dBaked.colorSpace = THREE.SRGBColorSpace;
 
     const nBaked = useTexture('./assets/roomTextureNightcmp.webp');
     nBaked.flipY = false;
     nBaked.magFilter = THREE.LinearFilter;
     nBaked.minFilter = THREE.NearestFilter;
     nBaked.generateMipmaps = false;
+    nBaked.colorSpace = THREE.SRGBColorSpace;
 
     const lightMap = useTexture('./assets/roomTextureLightMapcmp.webp');
     lightMap.flipY = false;
     lightMap.magFilter = THREE.LinearFilter;
     lightMap.minFilter = THREE.NearestFilter;
     lightMap.generateMipmaps = false;
+    lightMap.colorSpace = THREE.NoColorSpace;
 
     const textureMaterialProps = useMemo(
         () => ({
@@ -105,6 +106,7 @@ const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
                     geometry={roomModel.nodes.roomFurniture.geometry}
                     position={roomModel.nodes.roomFurniture.position}
                     rotation={roomModel.nodes.roomFurniture.rotation}
+                    raycast={meshBounds}
                     onClick={
                         cameraState === 'default'
                             ? undefined
@@ -125,6 +127,7 @@ const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
                     geometry={roomModel.nodes.deskShelfStuf.geometry}
                     position={roomModel.nodes.deskShelfStuf.position}
                     rotation={roomModel.nodes.deskShelfStuf.rotation}
+                    raycast={meshBounds}
                     onClick={
                         cameraState === 'default' ? undefined : defaultState
                     }
@@ -140,6 +143,7 @@ const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
                     geometry={chair.nodes.chairTop.geometry}
                     position={chair.nodes.chairTop.position}
                     rotation={chair.nodes.chairTop.rotation}
+                    raycast={meshBounds}
                     onClick={
                         cameraState === 'default' ? undefined : defaultState
                     }
@@ -150,9 +154,9 @@ const RoomModel = React.memo(({ onStationOpen, stationActions }) => {
                     />
                 </mesh>
                 <PhotoFrame nodes={roomModel.nodes} />
-                <DispFrame nodes={roomModel.nodes} onStationOpen={onStationOpen} stationActions={stationActions} />
-                <DispItem toggle={toggle} nodes={roomModel.nodes} />
-                <TeddyBear />
+                <DispFrame nodes={roomModel.nodes} onStationOpen={onStationOpen} stationActions={stationActions} nightMix={x} />
+                <TeddyBear nightMix={x} />
+                <ChildFriendlyProps nightMix={x} />
                 <Clock />
                 <Windows toggle={toggle} nodes={roomModel.nodes} />
                 <TheamSwitch x={x} set={setToggle} nodes={roomModel.nodes} />

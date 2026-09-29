@@ -1,51 +1,57 @@
 /* Educational objects open the corresponding activity directly. */
-import { Html } from '@react-three/drei';
+import { Edges, Html } from '@react-three/drei';
 import { Select } from '@react-three/postprocessing';
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import * as THREE from 'three';
+
+import { useRoomCursor } from '../helper/useRoomCursor';
+import DispItem, { WhiteboardArt } from './dispItem';
 
 const STATION_TARGETS = [
     {
         id: 'computer',
         color: '#526dff',
-        node: 'monitor',
+        label: 'FERRAMENTAS EDUCATIVAS',
         labelPosition: [1.46, 3.05, 2.72]
     },
     {
         id: 'board',
         color: '#fbbf24',
-        node: 'dispItem',
-        labelPosition: [-5.25, 3.35, -0.56]
+        label: 'TRILHAS DE APRENDIZAGEM'
     },
     {
         id: 'tv',
         color: '#a855f7',
-        node: 'tvdisplay',
-        labelPosition: [2.4, 2.35, 1.55]
+        label: 'JOGOS EDUCATIVOS',
+        labelPosition: [2.89, 1.53, -1.20]
     },
     {
         id: 'desk',
         color: '#f97316',
-        labelPosition: [2.5, 2.55, 2.7]
+        label: 'ÁLBUNS',
+        labelPosition: [0.95, 4.18, 3.91]
     }
 ];
 
 const SCREEN_COLOR = '#526dff';
 
-const DESK_COLLIDER = {
-    // The desk is part of the same modeled assembly as the monitor. Keep the
-    // interaction target in that node's local frame so model transforms cannot
-    // make the hit area drift into the chair or floor.
-    offset: [1.0431332588, -0.7377959723, -0.0166295052],
-    scale: [2.5, 0.12, 1.2]
+const BOARD_LABEL_ANCHOR = [0.14, 1.48, -1.38];
+
+const CHESS_COLLIDER = {
+    center: [2.89, 1.08, -1.20],
+    dimensions: [0.96, 0.025, 0.96]
 };
 
-const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => {
+const BOOKS_COLLIDER = {
+    center: [0.95, 3.81, 3.91],
+    dimensions: [0.42, 0.18, 0.29],
+    rotation: [0, 0.49, 0]
+};
+
+const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {}, nightMix }) => {
     const [hovered, setHovered] = useState(null);
 
-    useEffect(() => {
-        document.body.style.cursor = hovered ? 'pointer' : 'auto';
-        return () => { document.body.style.cursor = 'auto'; };
-    }, [hovered]);
+    useRoomCursor(Boolean(hovered));
 
     const openStation = (station) => (event) => {
         event.stopPropagation();
@@ -58,28 +64,32 @@ const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => 
         available: false,
         hoverLabel: 'Nenhuma atividade liberada'
     };
-    const targetLabel = (station) => actionFor(station).hoverLabel;
     const targetColor = (station) => STATION_TARGETS.find((target) => target.id === station)?.color || 'white';
-    const deskPosition = [
-        nodes.monitor.position.x + DESK_COLLIDER.offset[0],
-        nodes.monitor.position.y + DESK_COLLIDER.offset[1],
-        nodes.monitor.position.z + DESK_COLLIDER.offset[2]
-    ];
+    const boardLabelPosition = useMemo(() => new THREE.Vector3(
+        BOARD_LABEL_ANCHOR[0],
+        BOARD_LABEL_ANCHOR[1],
+        BOARD_LABEL_ANCHOR[2]
+    )
+        .applyEuler(nodes.dispItem.rotation)
+        .add(nodes.dispItem.position)
+        .toArray(), [nodes.dispItem]);
 
     const stationLabel = (station) => (
         <Html
             center
             distanceFactor={7}
-            position={STATION_TARGETS.find((target) => target.id === station)?.labelPosition}
+            position={station === 'board'
+                    ? boardLabelPosition
+                    : STATION_TARGETS.find((target) => target.id === station)?.labelPosition}
             style={{ pointerEvents: 'none' }}
             zIndexRange={[1, 2]}
         >
             <div
                 aria-hidden="true"
-                className={`station-label ${actionFor(station).available ? '' : 'station-label-empty'}`}
+                className={`station-label ${hovered === station ? '' : 'station-label-idle'} ${actionFor(station).available ? '' : 'station-label-empty'}`}
                 style={{ '--station-color': targetColor(station) }}
             >
-                {targetLabel(station)}
+                {STATION_TARGETS.find((target) => target.id === station)?.label}
             </div>
         </Html>
     );
@@ -87,7 +97,7 @@ const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => 
     const selectTarget = (station, children) => (
         <Select enabled={hovered === station} key={station}>
             {children}
-            {(hovered === station) && stationLabel(station)}
+            {stationLabel(station)}
         </Select>
     );
 
@@ -108,41 +118,42 @@ const DispFrame = React.memo(({ nodes, onStationOpen, stationActions = {} }) => 
             onPointerOver={setStationHover('computer')}
             onPointerOut={clearStationHover}
         >
-            <meshBasicMaterial color={SCREEN_COLOR} toneMapped={false} />
+            <meshBasicMaterial color={SCREEN_COLOR} transparent opacity={0.82} toneMapped={false} />
         </mesh>)}
-        {selectTarget('board', <mesh
-            geometry={nodes.dispItem.geometry}
-            position={nodes.dispItem.position}
-            rotation={nodes.dispItem.rotation}
+        {selectTarget('board', <DispItem
+            nodes={nodes}
+            nightMix={nightMix}
             onClick={openStation('board')}
             onPointerDown={setStationHover('board')}
             onPointerOver={setStationHover('board')}
             onPointerOut={clearStationHover}
-        >
-            <meshBasicMaterial transparent opacity={0.03} color="#fbbf24" depthWrite={false} />
-        </mesh>)}
+        />)}
+        <WhiteboardArt nodes={nodes} nightMix={nightMix} />
+        <mesh geometry={nodes.tvdisplay.geometry} position={nodes.tvdisplay.position} rotation={nodes.tvdisplay.rotation}>
+            <meshBasicMaterial transparent opacity={0.03} color="#a855f7" depthWrite={false} />
+        </mesh>
         {selectTarget('tv', <mesh
-            geometry={nodes.tvdisplay.geometry}
-            position={nodes.tvdisplay.position}
-            rotation={nodes.tvdisplay.rotation}
+            position={CHESS_COLLIDER.center}
             onClick={openStation('tv')}
             onPointerDown={setStationHover('tv')}
             onPointerOver={setStationHover('tv')}
             onPointerOut={clearStationHover}
         >
-            <meshBasicMaterial transparent opacity={0.03} color="#a855f7" depthWrite={false} />
+            <boxGeometry args={CHESS_COLLIDER.dimensions} />
+            <meshBasicMaterial transparent opacity={hovered === 'tv' ? 0.12 : 0.045} color="#a855f7" depthWrite={false} />
+            {hovered === 'tv' && <Edges scale={1.01} color="#d8b4fe" />}
         </mesh>)}
         {selectTarget('desk', <mesh
-            position={deskPosition}
-            rotation={nodes.monitor.rotation}
-            scale={DESK_COLLIDER.scale}
+            position={BOOKS_COLLIDER.center}
+            rotation={BOOKS_COLLIDER.rotation}
             onClick={openStation('desk')}
             onPointerDown={setStationHover('desk')}
             onPointerOver={setStationHover('desk')}
             onPointerOut={clearStationHover}
         >
-            <boxGeometry args={[1, 1, 1]} />
-            <meshBasicMaterial transparent opacity={0.03} color="#f97316" depthWrite={false} />
+            <boxGeometry args={BOOKS_COLLIDER.dimensions} />
+            <meshBasicMaterial transparent opacity={hovered === 'desk' ? 0.12 : 0.045} color="#f97316" depthWrite={false} />
+            {hovered === 'desk' && <Edges scale={1.01} color="#fdba74" />}
         </mesh>)}
     </>;
 });

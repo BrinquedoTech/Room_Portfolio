@@ -1,15 +1,14 @@
 /* eslint-disable react/prop-types */
 import { a } from '@react-spring/three';
 import { meshBounds } from '@react-three/drei';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+
+import { useRoomCursor } from '../helper/useRoomCursor';
 
 export default function TheamSwitch({ x, set, nodes }) {
     const [hovered, setHover] = useState(false);
 
-    useEffect(
-        () => void (document.body.style.cursor = hovered ? 'pointer' : 'auto'),
-        [hovered]
-    );
+    useRoomCursor(hovered);
 
     const onClick = useCallback(() => set((toggle) => Number(!toggle)), [set]);
     const onPointerOver = useCallback(() => setHover(true), []);

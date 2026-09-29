@@ -4,20 +4,31 @@ import { useFrame } from '@react-three/fiber';
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 
+import '../setupAssetLoaders';
+
 const Clock = React.memo(() => {
     const { nodes } = useGLTF('./assets/clock.glb');
 
     const hourRef = useRef();
     const minuteRef = useRef();
     const secondRef = useRef();
+    const timeRef = useRef({ second: -1, hours: 0, minutes: 0, seconds: 0 });
 
     useFrame(() => {
-        const date = new Date();
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
-        const seconds = date.getSeconds();
-        const milliseconds = date.getMilliseconds();
-        const smoothSeconds = seconds + milliseconds / 1000;
+        const now = Date.now();
+        const second = Math.floor(now / 1000);
+        if (timeRef.current.second !== second) {
+            const date = new Date(now);
+            timeRef.current = {
+                second,
+                hours: date.getHours(),
+                minutes: date.getMinutes(),
+                seconds: date.getSeconds()
+            };
+        }
+
+        const { hours, minutes, seconds } = timeRef.current;
+        const smoothSeconds = seconds + (now % 1000) / 1000;
         const smoothMinutes = minutes + smoothSeconds / 60;
         const smoothHours = hours + smoothMinutes / 60;
 

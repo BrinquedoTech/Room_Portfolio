@@ -35,9 +35,10 @@ const Experience = React.memo(({ onError, onStationOpen, stationActions }) => {
                 camera={{
                     fov: 35,
                     near: 0.1,
-                    far: 200,
+                    far: 40,
                     position: [24, 15, -24]
                 }}
+                dpr={[1, 1.5]}
                 gl={{
                     antialias: true,
                     alpha: true,
@@ -50,10 +51,9 @@ const Experience = React.memo(({ onError, onStationOpen, stationActions }) => {
                             <Outline
                                 blur
                                 visibleEdgeColor="white"
-                                edgeStrength={60}
-                                width={2000}
+                                edgeStrength={42}
                             />
-                            <Bloom mipmapBlur intensity={0.9} />
+                            <Bloom mipmapBlur levels={5} intensity={0.55} />
                         </EffectComposer>
                         {/* <Perf position={'top-left'} /> */}
                         <CameraManager />
