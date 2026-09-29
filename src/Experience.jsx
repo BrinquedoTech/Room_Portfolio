@@ -28,16 +28,17 @@ class SceneErrorBoundary extends Component {
     }
 }
 
-const Experience = React.memo(({ onError, onStationSelect }) => {
+const Experience = React.memo(({ onError, onStationOpen, stationActions }) => {
     return (
         <SceneErrorBoundary onError={onError}>
             <Canvas
                 camera={{
                     fov: 35,
                     near: 0.1,
-                    far: 200,
+                    far: 40,
                     position: [24, 15, -24]
                 }}
+                dpr={[1, 1.5]}
                 gl={{
                     antialias: true,
                     alpha: true,
@@ -50,14 +51,13 @@ const Experience = React.memo(({ onError, onStationSelect }) => {
                             <Outline
                                 blur
                                 visibleEdgeColor="white"
-                                edgeStrength={60}
-                                width={2000}
+                                edgeStrength={42}
                             />
-                            <Bloom mipmapBlur intensity={0.9} />
+                            <Bloom mipmapBlur levels={5} intensity={0.55} />
                         </EffectComposer>
                         {/* <Perf position={'top-left'} /> */}
                         <CameraManager />
-                        <RoomModel onStationSelect={onStationSelect} />
+                        <RoomModel onStationOpen={onStationOpen} stationActions={stationActions} />
                     </Selection>
                 </Suspense>
             </Canvas>
